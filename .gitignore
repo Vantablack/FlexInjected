@@ -103,7 +103,7 @@ Carthage/Build
 *.xcscmblueprint
 
 #
-FLEX/
+# FLEX/
 bin/
 src/
 theos/

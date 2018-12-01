@@ -5,6 +5,7 @@ the generation of a class list and an automatic constructor.
 */
 #include <dlfcn.h>
 
+NSString * const PREFS_CONST = @"/var/mobile/Library/Preferences/com.yaowei.flexinjected.plist";
 
 @interface MyDKFLEXLoader : NSObject
 
@@ -25,51 +26,50 @@ the generation of a class list and an automatic constructor.
 
 - (void)show
 {
-	// [[FLEXManager sharedManager] showExplorer];
-
-	Class FLEXManager = NSClassFromString(@"FLEXManager");
-	id sharedManager = [FLEXManager performSelector:@selector(sharedManager)];
-	[sharedManager performSelector:@selector(showExplorer)];
+    // [[FLEXManager sharedManager] showExplorer];
+    Class FLEXManager = NSClassFromString(@"FLEXManager");
+    id sharedManager = [FLEXManager performSelector:@selector(sharedManager)];
+    [sharedManager performSelector:@selector(showExplorer)];
 }
 
 @end
 
+%group GROUP_STATUS_BAR_ACTIVATION
+    %hook UIStatusBarWindow
+        - (id)initWithFrame:(CGRect)frame {
+            self = %orig;
 
+            Class FLEXManager = NSClassFromString(@"FLEXManager");
+            id sharedManager = [FLEXManager performSelector:@selector(sharedManager)];
+            [self addGestureRecognizer:[[UILongPressGestureRecognizer alloc]
+                initWithTarget:sharedManager action:@selector(showExplorer)]];
+            
+            return self;
+        }
+    %end
+%end
 
 %ctor {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-            NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.yourcompany.flexinjected.plist"] ;
-        NSString *libraryPath = @"/Library/Application Support/FLEXLoader/FLEX.framework/FLEX";
+    
+    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:PREFS_CONST];
         
-        NSString *keyPath = [NSString stringWithFormat:@"FLEXInjectedEnabled-%@", [[NSBundle mainBundle] bundleIdentifier]];
-        NSLog(@"SSFLEXLoader before loaded %@,keyPath = %@,prefs = %@", libraryPath,keyPath,prefs);
-        if ([[prefs objectForKey:keyPath] boolValue]) {
-            if ([[NSFileManager defaultManager] fileExistsAtPath:libraryPath]){
-                void *haldel = dlopen([libraryPath UTF8String], RTLD_NOW);
-            if (haldel == NULL) {
-                char *error = dlerror();
-                NSLog(@"dlopen error: %s", error);
-            } else {
-                NSLog(@"dlopen load framework success.");
-                [[NSNotificationCenter defaultCenter] addObserver:[MyDKFLEXLoader sharedInstance] 
-											selector:@selector(show) 
-											name:UIApplicationDidBecomeActiveNotification 
-											object:nil];
-                    
-                
-            }
+    NSString *keyPath = [NSString stringWithFormat:@"FLEXInjectedEnabled-%@", [[NSBundle mainBundle] bundleIdentifier]];
 
-            NSLog(@"SSFLEXLoader loaded %@", libraryPath);
-            } else {
-                NSLog(@"SSFLEXLoader file not exists %@", libraryPath);
-            }
-        }
-        else {
-            NSLog(@"SSFLEXLoader not enabled %@", libraryPath);
-        }
-        
-        NSLog(@"SSFLEXLoader after loaded %@", libraryPath);
+    bool statusbar_activation = [prefs objectForKey:@"pref_statusbar_activation"] ? [[prefs objectForKey:@"pref_statusbar_activation"] boolValue] : NO;
 
+    if (statusbar_activation) {
+        %init(GROUP_STATUS_BAR_ACTIVATION);
+    }
+
+    if ([[prefs objectForKey:keyPath] boolValue]) {
+        [[NSNotificationCenter defaultCenter] addObserver:[MyDKFLEXLoader sharedInstance] 
+                                            selector:@selector(show) 
+                                            name:UIApplicationDidBecomeActiveNotification 
+                                            object:nil];
+    } else {
+        NSLog(@"FLEXInjected not enabled for current app");
+    }
 
     [pool drain];
 }

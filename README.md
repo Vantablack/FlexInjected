@@ -1,6 +1,55 @@
 # FlexInjected
 
-# iOS 越狱的Tweak开发
+## Addition
+
+- Added [FLEX](https://github.com/Flipboard/FLEX) as a submodule.
+- Added build_dylib.sh from [DKFlexLoader](https://github.com/danylokostyshyn/DKFLEXLoader)
+- Modified build_dylib.sh to build FLEX (signed) and copy to `layout/Library/MobileSubstrate/DynamicLibraries`
+- Added DKFLEXLoader from [DKFlexLoader](https://github.com/danylokostyshyn/DKFLEXLoader)
+- Modified Tweak.xm to add long press gesture recognizer on status bar from [NSExceptional/FLEXing](https://github.com/NSExceptional/FLEXing)
+- Updated FlexInjected preferences
+
+### Build Project
+
+To build the project, run `build_dylib.sh` first which will compile FLEX from scratch.
+This would produce the `libFLEX.dylib` and `libFLEX.dylib` in
+`layout/Library/MobileSubstrate/DynamicLibraries`.
+
+In the last step of the script, the library is codesigned with a self signed
+'Code Signing` certificate.
+
+Keychain Access.app > Certificate Assistant > Create a Certificate
+
+    Name: THEOS
+    Identity Type: Self-Signed Root
+    Certificate Type: Code Signing
+
+Without code signature, I ran into this error when loading `libFLEX.dylib`.
+
+```text
+Injection failed: 'dlopen(/Library/TweakInject/libFLEX.dylib, 9): no suitable image found.  Did find:
+	/Library/TweakInject/libFLEX.dylib: required code signature missing for '/Library/TweakInject/libFLEX.dylib'
+
+	/usr/lib/TweakInject/libFLEX.dylib: required code signature missing for '/usr/lib/TweakInject/libFLEX.dylib'
+'
+```
+
+Then just run `make do` or `make package` to build the `.deb` file. Do make sure that the
+dependencies defined in the `control` file is installed first.
+
+Tested on Electra iOS 11.3.1
+
+### References
+
+- [danylokostyshyn/flex-dylib-build-script](https://github.com/danylokostyshyn/flex-dylib-build-script)
+- [qiaoxueshi/FLEXLoader](https://github.com/qiaoxueshi/FLEXLoader)
+- [NSExceptional/FLEXing](https://github.com/NSExceptional/FLEXing)
+- [ipadkid358/FLEXit](https://github.com/ipadkid358/FLEXit)
+- [danylokostyshyn/DKFLEXLoader](https://github.com/danylokostyshyn/DKFLEXLoader)
+- [buginux/FLEXLoader](https://github.com/buginux/FLEXLoader)
+  - [https://www.jianshu.com/p/ae4628879227](https://www.jianshu.com/p/ae4628879227)
+
+## iOS 越狱的Tweak开发
 
 > iOS越狱开发中，各种破解补丁的统称为Tweak,通常意义上我们说的越狱开发,都是指开发一个Tweak.
 基本上,tweak都依赖于一个名叫[cydia Substrate](http://www.cydiasubstrate.com) (以前名字也叫mobile Substrate)的动态库,Mobile Substrate是Cydia的作者Jay Freeman (@saurik)的作品，也叫Cydia Substrate,它的主要功能是hook某个App，修改代码比如替换其中方法的实现，Cydia上的tweak都是基于Mobile Substrate实现的.
@@ -8,10 +57,6 @@
 > iOS的tweak开发可以有两种发布方式   
   1.  只能在越狱设备上安装的打包成deb格式的安装包  
   2.  直接使用开发者自己的证书/企业证书直接将补丁打包成ipa,这样不需要越狱也是可以安装的,只是这种非越狱的限制比较大,通常只是用来给某个app打个补丁或者类似的功能啥的
-
-
-
-
 
 ## tweak是啥?
 tweak的实质就是ios平台的**动态库**。IOS平台上有两种形势的动态库，dylib与framework。Framework这种开发者用的比较多，而dylib这种就相对比较少一点，比如libsqlite.dylib，libz.dylib等。而tweak用的正是dylib这种形势的动态库。我们可以在设备的**/Library/MobileSubstrate/DynamicLibraries**目录下查看手机上存在着的所有tweak。这个目录下除dylib外还存在着plist与bundle两种格式的文件，plist文件是用来标识该tweak的作用范围，而bundle是tweak所用到的资源文件
